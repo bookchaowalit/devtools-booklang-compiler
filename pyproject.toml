@@ -10,7 +10,12 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = [
+  "pytest>=8",
+  "pytest-cov>=7",
+  "mypy==2.4.0",
+  "ruff==0.17.1",
+]
 
 [project.scripts]
 book-lang = "book_language_tool.cli:main"
@@ -20,6 +25,21 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["book_language_tool"]
+
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+# Line length is left to `ruff format`; it keeps long strings and docstrings intact.
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests put src/ on sys.path before importing, so `python -m unittest` works without an install.
+"tests/*" = ["E402"]
 
 [tool.mypy]
 strict = true

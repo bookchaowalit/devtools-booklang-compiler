@@ -17,22 +17,26 @@ concurrency:
 
 jobs:
   compiler:
-    uses: bookchaowalit/platform-ci-workflows/.github/workflows/ci-python.yml@c37ef9d113eefb3ed45429717cb7ca201192c3fc # v1.0.1
+    uses: bookchaowalit/platform-ci-workflows/.github/workflows/ci-python.yml@87dc5e1c7e0416886a6371d5a101bb2ccba38edd # v1.1.1
     with:
       python-version: "3.11" # lowest supported version (requires-python >=3.11, mypy python_version)
-      # Non-editable install, as the old workflow's `pip install .`: the CLI smoke run below
+      # Installs exactly what uv.lock pins (pytest, pytest-cov, mypy, ruff from the dev extra).
+      # --no-editable keeps the old workflow's non-editable install: the CLI smoke run below
       # exercises the built package, not the source tree.
-      install-command: uv pip install ".[dev]"
-      # mypy --strict over the configured files (src); `mypy .` would also pull in the tests.
-      # Same pinned version as the shared workflow's default.
-      typecheck-command: uv pip install mypy==2.4.0 && mypy
-      # Unit + golden tests, then the CLI smoke run the old workflow did (check, run, compile, exec).
+      install-command: uv sync --frozen --all-extras --no-editable
+      # Lint: the shared auto step (ruff check + format --check) with the locked ruff.
+      # Typecheck: mypy --strict over the configured files (src) with the locked mypy. Not the auto
+      # `mypy .`: the non-editable build leaves build/lib, a duplicate of the package, in the tree.
+      typecheck-command: mypy
+      # Ratchet: measured 91.3% on 2026-10-22 (ADR-0004: threshold = measured, rounded down).
+      coverage-threshold: "91"
+      # Unit + golden tests under coverage, then the CLI smoke run the old workflow did (check, run, compile, exec).
       test-command: >-
-        python -m pytest -q
+        python -m pytest -q --cov
         && book-lang check examples/hello.book
         && book-lang run examples/hello.book
         && book-lang compile examples/hello.book --out "$RUNNER_TEMP/hello.ir.json"
         && book-lang exec "$RUNNER_TEMP/hello.ir.json"
 
   security:
-    uses: bookchaowalit/platform-ci-workflows/.github/workflows/security.yml@c37ef9d113eefb3ed45429717cb7ca201192c3fc # v1.0.1
+    uses: bookchaowalit/platform-ci-workflows/.github/workflows/security.yml@87dc5e1c7e0416886a6371d5a101bb2ccba38edd # v1.1.1
